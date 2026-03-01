@@ -98,6 +98,7 @@ jobs:
             --configurationPath="$SOURCE_DIR/build-system/appstore-configuration.json" \
             --codesigningInformationPath="$SOURCE_DIR/build-system/fake-codesigning" \
             --configuration=release_arm64 \
+            --outputBuildArtifactsPath="$SOURCE_DIR/build/artifacts" \
             --buildNumber="$BUILD_NUMBER"
 
       - name: Collect artifacts
@@ -105,21 +106,17 @@ jobs:
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
           OUTPUT_DIR="$RUNNER_TEMP/artifacts"
+          ARTIFACTS_DIR="$SOURCE_DIR/build/artifacts"
           mkdir -p "$OUTPUT_DIR"
 
-          shopt -s nullglob
-          IPA_FILES=("$SOURCE_DIR"/bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa)
-          if [[ ${#IPA_FILES[@]} -eq 0 ]]; then
-            echo "No IPA produced" >&2
+          if [[ ! -f "$ARTIFACTS_DIR/Telegram.ipa" ]]; then
+            echo "No IPA produced at $ARTIFACTS_DIR/Telegram.ipa" >&2
             exit 1
           fi
-          cp "${IPA_FILES[0]}" "$OUTPUT_DIR/Telegram-unsigned.ipa"
+          cp "$ARTIFACTS_DIR/Telegram.ipa" "$OUTPUT_DIR/Telegram-unsigned.ipa"
 
-          mkdir -p "$SOURCE_DIR/build/DSYMs"
-          DSYM_FILES=("$SOURCE_DIR"/bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/*.dSYM)
-          if [[ ${#DSYM_FILES[@]} -gt 0 ]]; then
-            cp -R "${DSYM_FILES[@]}" "$SOURCE_DIR/build/DSYMs/"
-            (cd "$SOURCE_DIR" && zip -r "$OUTPUT_DIR/Telegram.DSYMs.zip" build/DSYMs >/dev/null)
+          if [[ -f "$ARTIFACTS_DIR/Telegram.DSYMs.zip" ]]; then
+            cp "$ARTIFACTS_DIR/Telegram.DSYMs.zip" "$OUTPUT_DIR/Telegram.DSYMs.zip"
           fi
 
           shasum -a 256 "$OUTPUT_DIR/Telegram-unsigned.ipa" | tee "$OUTPUT_DIR/SHA256SUMS.txt"
