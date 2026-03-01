@@ -329,10 +329,34 @@ index 1449e611ea..02a4cf1532 100644
              assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
          }
 diff --git a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
-index 3f07e3bb5e..e0b9170d83 100644
+index 3f07e3bb5e..0862fd3e81 100644
 --- a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
 +++ b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
-@@ -448,7 +448,7 @@ func multipartUpload(network: Network, postbox: Postbox, source: MultipartUpload
+@@ -8,6 +8,23 @@ import ManagedFile
+ 
+ private typealias SignalKitTimer = SwiftSignalKit.Timer
+ 
++func telegramFileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ 
+ private struct UploadPart {
+     let fileId: Int64
+@@ -448,7 +465,7 @@ func multipartUpload(network: Network, postbox: Postbox, source: MultipartUpload
                      fetchedResource = fetchedMediaResource(mediaBox: postbox.mediaBox, userLocation: .other, userContentType: .other, reference: resource)
                      |> map { _ in }
                  case let .tempFile(file):
