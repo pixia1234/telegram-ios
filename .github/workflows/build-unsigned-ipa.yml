@@ -57,17 +57,20 @@ jobs:
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
 
-          # 11.9.0 fake-codesigning keeps this profile at the root; Make.py reads from profiles/.
-          if [[ -f "$SOURCE_DIR/build-system/fake-codesigning/BroadcastUpload.mobileprovision" ]]; then
-            cp -f "$SOURCE_DIR/build-system/fake-codesigning/BroadcastUpload.mobileprovision" \
-              "$SOURCE_DIR/build-system/fake-codesigning/profiles/BroadcastUpload.mobileprovision"
+          # 11.9.0 bundled fake profiles are expired in 2026; refresh from upstream latest branch.
+          LATEST_PROFILE_REF="origin/master"
+          if ! git -C "$SOURCE_DIR" rev-parse --verify "$LATEST_PROFILE_REF" >/dev/null 2>&1; then
+            LATEST_PROFILE_REF="origin/main"
           fi
+          for profile in Telegram Intents NotificationContent NotificationService Share WatchApp WatchExtension Widget BroadcastUpload; do
+            git -C "$SOURCE_DIR" show "$LATEST_PROFILE_REF:build-system/fake-codesigning/profiles/${profile}.mobileprovision" \
+              > "$SOURCE_DIR/build-system/fake-codesigning/profiles/${profile}.mobileprovision"
+          done
 
           python3 "$SOURCE_DIR/build-system/Make/ImportCertificates.py" --path "$SOURCE_DIR/build-system/fake-codesigning/certs"
 
           python3 -u "$SOURCE_DIR/build-system/Make/Make.py" \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
-            --bazelArguments="--//Telegram:disableProvisioningProfiles" \
             build \
             --configurationPath="$SOURCE_DIR/build-system/appstore-configuration.json" \
             --codesigningInformationPath="$SOURCE_DIR/build-system/fake-codesigning" \
