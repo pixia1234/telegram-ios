@@ -1269,10 +1269,18 @@ index e38ac9e876..e4884dab1d 100644
      case standard
      case remove(() -> Void)
 diff --git a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
-index 7f6a694b9b..8b3af3f13a 100644
+index 7f6a694b9b..b3788c4fba 100644
 --- a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
 +++ b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
-@@ -123,32 +123,9 @@ extension ChatControllerImpl {
+@@ -47,7 +47,6 @@ extension ChatControllerImpl {
+             return
+         }
+         
+-        let context = self.context
+         let inputIsActive = self.presentationInterfaceState.inputMode == .text
+         
+         self.chatDisplayNode.dismissInput()
+@@ -123,32 +122,9 @@ extension ChatControllerImpl {
              isPaidMessages = true
          }
          
@@ -1306,7 +1314,7 @@ index 7f6a694b9b..8b3af3f13a 100644
                  var buttons = availableButtons
                  var allButtons = availableButtons
                  var initialButton: AttachmentButtonType?
-@@ -158,31 +135,12 @@ extension ChatControllerImpl {
+@@ -158,31 +134,12 @@ extension ChatControllerImpl {
                  case .edit:
                      break
                  case .gift:
@@ -1339,7 +1347,7 @@ index 7f6a694b9b..8b3af3f13a 100644
                      if let user = peer as? TelegramUser, user.botInfo == nil {
                          if let index = buttons.firstIndex(where: { $0 == .location }) {
                              buttons.insert(.quickReply, at: index + 1)
-@@ -198,7 +156,7 @@ extension ChatControllerImpl {
+@@ -198,7 +155,7 @@ extension ChatControllerImpl {
                  }
                  
                  return (buttons, allButtons, initialButton)
@@ -1348,7 +1356,7 @@ index 7f6a694b9b..8b3af3f13a 100644
          } else {
              buttons = .single((availableButtons, availableButtons, .gallery))
          }
-@@ -208,75 +166,13 @@ extension ChatControllerImpl {
+@@ -208,75 +165,13 @@ extension ChatControllerImpl {
              return entry ?? GeneratedMediaStoreSettings.defaultSettings
          }
          
@@ -1426,7 +1434,7 @@ index 7f6a694b9b..8b3af3f13a 100644
              
              let inputText = strongSelf.presentationInterfaceState.interfaceState.effectiveInputState.inputText
              
-@@ -621,71 +517,10 @@ extension ChatControllerImpl {
+@@ -621,71 +516,10 @@ extension ChatControllerImpl {
                          strongSelf.controllerNavigationDisposable.set(nil)
                      }
                  case .gift:
