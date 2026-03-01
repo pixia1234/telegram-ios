@@ -34,6 +34,82 @@ index 790a21b077..3c47ef3b15 100644
                  boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
                  audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
                  audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,
+diff --git a/submodules/Postbox/Sources/MessageHistoryViewState.swift b/submodules/Postbox/Sources/MessageHistoryViewState.swift
+index 1449e611ea..02a4cf1532 100644
+--- a/submodules/Postbox/Sources/MessageHistoryViewState.swift
++++ b/submodules/Postbox/Sources/MessageHistoryViewState.swift
+@@ -969,7 +969,7 @@ struct OrderedHistoryViewEntries {
+             }
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1008,7 +1008,7 @@ struct OrderedHistoryViewEntries {
+             }
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1047,7 +1047,7 @@ struct OrderedHistoryViewEntries {
+             }
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1073,7 +1073,7 @@ struct OrderedHistoryViewEntries {
+             }
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1099,7 +1099,7 @@ struct OrderedHistoryViewEntries {
+             }
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1125,7 +1125,7 @@ struct OrderedHistoryViewEntries {
+         
+         self.lowerOrAtAnchor.remove(at: index)
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1151,7 +1151,7 @@ struct OrderedHistoryViewEntries {
+         
+         self.higherThanAnchor.remove(at: index)
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
+@@ -1207,7 +1207,7 @@ struct OrderedHistoryViewEntries {
+             self.higherThanAnchor.sort(by: { $0.index.id.id < $1.index.id.id })
+         }
+         
+-        #if DEBUG && TARGET_OS_IOS
++        #if DEBUG && os(iOS)
+         for entry in self.lowerOrAtAnchor {
+             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
+         }
 diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
 index 44fabb5b5a..88ea281483 100644
 --- a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
