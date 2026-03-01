@@ -34,6 +34,81 @@ index 790a21b077..3c47ef3b15 100644
                  boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
                  audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
                  audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,
+diff --git a/submodules/AsyncDisplayKit/Source/ASLayout.mm b/submodules/AsyncDisplayKit/Source/ASLayout.mm
+index 6a6a96f24c..9db6dee0b5 100644
+--- a/submodules/AsyncDisplayKit/Source/ASLayout.mm
++++ b/submodules/AsyncDisplayKit/Source/ASLayout.mm
+@@ -234,11 +234,10 @@ static std::atomic_bool static_retainsSublayoutLayoutElements = ATOMIC_VAR_INIT(
+         flattenedSublayouts.push_back(layout);
+       }
+     } else if (sublayoutsCount > 0) {
+-      // Fast-reverse-enumerate the sublayouts array by copying it into a C-array and push_front'ing each into the queue.
+-      unowned ASLayout *rawSublayouts[sublayoutsCount];
+-      [layout->_sublayouts getObjects:rawSublayouts range:NSMakeRange(0, sublayoutsCount)];
++      // Fast-reverse-enumerate and push_front each child into the queue.
+       for (NSInteger i = sublayoutsCount - 1; i >= 0; i--) {
+-        queue.push_front({rawSublayouts[i], absolutePosition + rawSublayouts[i].position});
++        ASLayout *rawSublayout = layout->_sublayouts[i];
++        queue.push_front({rawSublayout, absolutePosition + rawSublayout.position});
+       }
+     }
+   }
+diff --git a/submodules/AsyncDisplayKit/Source/ASLayoutSpec.mm b/submodules/AsyncDisplayKit/Source/ASLayoutSpec.mm
+index 6123e4d734..adb10f44e7 100644
+--- a/submodules/AsyncDisplayKit/Source/ASLayoutSpec.mm
++++ b/submodules/AsyncDisplayKit/Source/ASLayoutSpec.mm
+@@ -289,9 +289,7 @@ ASSynthesizeLockingMethodsWithMutex(__instanceLock__)
+ - (ASLayout *)calculateLayoutThatFits:(ASSizeRange)constrainedSize
+ {
+   NSArray *children = self.children;
+-  const auto count = children.count;
+-  ASLayout *rawSublayouts[count];
+-  int i = 0;
++  NSMutableArray<ASLayout *> *sublayouts = [[NSMutableArray alloc] initWithCapacity:children.count];
+   
+   CGSize size = constrainedSize.min;
+   for (id<ASLayoutElement> child in children) {
+@@ -301,9 +299,8 @@ ASSynthesizeLockingMethodsWithMutex(__instanceLock__)
+     size.width = MAX(size.width,  sublayout.size.width);
+     size.height = MAX(size.height, sublayout.size.height);
+     
+-    rawSublayouts[i++] = sublayout;
++    [sublayouts addObject:sublayout];
+   }
+-  const auto sublayouts = [NSArray<ASLayout *> arrayByTransferring:rawSublayouts count:i];
+   return [ASLayout layoutWithLayoutElement:self size:size sublayouts:sublayouts];
+ }
+ 
+diff --git a/submodules/AsyncDisplayKit/Source/ASMainThreadDeallocation.mm b/submodules/AsyncDisplayKit/Source/ASMainThreadDeallocation.mm
+index 4b16c932d2..8a88424ef3 100644
+--- a/submodules/AsyncDisplayKit/Source/ASMainThreadDeallocation.mm
++++ b/submodules/AsyncDisplayKit/Source/ASMainThreadDeallocation.mm
+@@ -31,10 +31,14 @@
+   // Will be unused if assertions are disabled.
+   __unused int scanResult = sscanf(ivarsObj.objCType, "[%u^{objc_ivar}]", &count);
+   ASDisplayNodeAssert(scanResult == 1, @"Unexpected type in NSValue: %s", ivarsObj.objCType);
+-  Ivar ivars[count];
++  Ivar *ivars = (Ivar *)malloc(sizeof(Ivar) * count);
++  if (ivars == NULL && count != 0) {
++    return;
++  }
+   [ivarsObj getValue:ivars];
+   
+-  for (Ivar ivar : ivars) {
++  for (unsigned int i = 0; i < count; i++) {
++    Ivar ivar = ivars[i];
+     id value = object_getIvar(self, ivar);
+     if (value == nil) {
+       continue;
+@@ -49,6 +53,8 @@
+     } else {
+     }
+   }
++  
++  free(ivars);
+ }
+ 
+ /**
 diff --git a/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h b/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h
 index dd15d1aca4..95c9b29f66 100644
 --- a/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h
