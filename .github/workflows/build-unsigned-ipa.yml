@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 720
     env:
       UPSTREAM_REF: 63a37c5becb646a3c2400e01d91d78faf4799a2e
