@@ -329,10 +329,10 @@ index 1449e611ea..02a4cf1532 100644
              assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
          }
 diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
-index 44fabb5b5a..88ea281483 100644
+index 44fabb5b5a..d6b543a527 100644
 --- a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
 +++ b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
-@@ -404,10 +404,12 @@ private class AdMessagesHistoryContextImpl {
+@@ -404,111 +404,8 @@ private class AdMessagesHistoryContextImpl {
          self.queue = queue
          self.account = account
          self.peerId = peerId
@@ -340,23 +340,111 @@ index 44fabb5b5a..88ea281483 100644
 -        let accountPeerId = account.peerId
  
          self.stateValue = State(interPostInterval: nil, messages: [])
-+        let adsDisabled = true
-+        if adsDisabled {
-+            return
-+        }
- 
-         self.state.set(CachedState.getCached(postbox: account.postbox, peerId: peerId)
-         |> mapToSignal { cachedState -> Signal<State, NoError> in
-@@ -443,7 +445,7 @@ private class AdMessagesHistoryContextImpl {
-                     switch result {
-                     case let .sponsoredMessages(_, postsBetween, messages, chats, users):
-                         let parsedPeers = AccumulatedPeers(transaction: transaction, chats: chats, users: users)
+-
+-        self.state.set(CachedState.getCached(postbox: account.postbox, peerId: peerId)
+-        |> mapToSignal { cachedState -> Signal<State, NoError> in
+-            if let cachedState = cachedState, cachedState.timestamp >= Int32(Date().timeIntervalSince1970) - 5 * 60 {
+-                return account.postbox.transaction { transaction -> State in
+-                    return State(interPostInterval: cachedState.interPostInterval, messages: cachedState.messages.compactMap { message -> Message? in
+-                        return message.toMessage(peerId: peerId, transaction: transaction)
+-                    })
+-                }
+-            } else {
+-                return .single(State(interPostInterval: nil, messages: []))
+-            }
+-        })
+-
+-        let signal: Signal<(interPostInterval: Int32?, messages: [Message]), NoError> = account.postbox.transaction { transaction -> Api.InputPeer? in
+-            return transaction.getPeer(peerId).flatMap(apiInputPeer)
+-        }
+-        |> mapToSignal { inputPeer -> Signal<(interPostInterval: Int32?, messages: [Message]), NoError> in
+-            guard let inputPeer else {
+-                return .single((nil, []))
+-            }
+-            return account.network.request(Api.functions.messages.getSponsoredMessages(peer: inputPeer))
+-            |> map(Optional.init)
+-            |> `catch` { _ -> Signal<Api.messages.SponsoredMessages?, NoError> in
+-                return .single(nil)
+-            }
+-            |> mapToSignal { result -> Signal<(interPostInterval: Int32?, messages: [Message]), NoError> in
+-                guard let result = result else {
+-                    return .single((nil, []))
+-                }
+-
+-                return account.postbox.transaction { transaction -> (interPostInterval: Int32?, messages: [Message]) in
+-                    switch result {
+-                    case let .sponsoredMessages(_, postsBetween, messages, chats, users):
+-                        let parsedPeers = AccumulatedPeers(transaction: transaction, chats: chats, users: users)
 -                        updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: parsedPeers)
-+                        updatePeers(transaction: transaction, accountPeerId: account.peerId, peers: parsedPeers)
- 
-                         var parsedMessages: [CachedMessage] = []
- 
-@@ -516,42 +518,16 @@ private class AdMessagesHistoryContextImpl {
+-
+-                        var parsedMessages: [CachedMessage] = []
+-
+-                        for message in messages {
+-                            switch message {
+-                            case let .sponsoredMessage(flags, randomId, url, title, message, entities, photo, media, color, buttonText, sponsorInfo, additionalInfo):
+-                                var parsedEntities: [MessageTextEntity] = []
+-                                if let entities = entities {
+-                                    parsedEntities = messageTextEntitiesFromApiEntities(entities)
+-                                }
+-                                
+-                                let isRecommended = (flags & (1 << 5)) != 0
+-                                let canReport = (flags & (1 << 12)) != 0
+-                                
+-                                var nameColorIndex: Int32?
+-                                var backgroundEmojiId: Int64?
+-                                if let color = color {
+-                                    switch color {
+-                                    case let .peerColor(_, color, backgroundEmojiIdValue):
+-                                        nameColorIndex = color
+-                                        backgroundEmojiId = backgroundEmojiIdValue
+-                                    }
+-                                }
+-                                
+-                                let photo = photo.flatMap { telegramMediaImageFromApiPhoto($0) }
+-                                let contentMedia = textMediaAndExpirationTimerFromApiMedia(media, peerId).media
+-                                
+-                                parsedMessages.append(CachedMessage(
+-                                    opaqueId: randomId.makeData(),
+-                                    messageType: isRecommended ? .recommended : .sponsored,
+-                                    title: title,
+-                                    text: message,
+-                                    textEntities: parsedEntities,
+-                                    media: photo.flatMap { [$0] } ?? [],
+-                                    contentMedia: contentMedia.flatMap { [$0] } ?? [],
+-                                    color: nameColorIndex.flatMap { PeerNameColor(rawValue: $0) },
+-                                    backgroundEmojiId: backgroundEmojiId,
+-                                    url: url,
+-                                    buttonText: buttonText,
+-                                    sponsorInfo: sponsorInfo,
+-                                    additionalInfo: additionalInfo,
+-                                    canReport: canReport
+-                                ))
+-                            }
+-                        }
+-
+-                        CachedState.setCached(transaction: transaction, peerId: peerId, state: CachedState(timestamp: Int32(Date().timeIntervalSince1970), interPostInterval: postsBetween, messages: parsedMessages))
+-
+-                        return (postsBetween, parsedMessages.compactMap { message -> Message? in
+-                            return message.toMessage(peerId: peerId, transaction: transaction)
+-                        })
+-                    case .sponsoredMessagesEmpty:
+-                        return (nil, [])
+-                    }
+-                }
+-            }
+-        }
+-        
+-        self.disposable.set((signal
+-        |> deliverOn(self.queue)).start(next: { [weak self] interPostInterval, messages in
+-            guard let strongSelf = self else {
+-                return
+-            }
+-            strongSelf.stateValue = State(interPostInterval: interPostInterval, messages: messages)
+-        }))
+     }
+     
+     deinit {
+@@ -516,42 +413,16 @@ private class AdMessagesHistoryContextImpl {
          self.maskAsSeenDisposables.dispose()
      }
  
@@ -405,7 +493,7 @@ index 44fabb5b5a..88ea281483 100644
      }
  }
  
-@@ -601,26 +577,10 @@ public class AdMessagesHistoryContext {
+@@ -601,26 +472,10 @@ public class AdMessagesHistoryContext {
  }
  
  
