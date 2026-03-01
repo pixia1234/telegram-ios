@@ -34,6 +34,33 @@ index 790a21b077..3c47ef3b15 100644
                  boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
                  audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
                  audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,
+diff --git a/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h b/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h
+index dd15d1aca4..95c9b29f66 100644
+--- a/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h
++++ b/submodules/AsyncDisplayKit/Source/PublicHeaders/AsyncDisplayKit/ASBaseDefines.h
+@@ -229,16 +229,16 @@
+  */
+ #define ASArrayByFlatMapping(collectionArg, decl, work) ({ \
+   id __collection = collectionArg; \
+-  NSArray *__result; \
++  NSArray *__result = nil; \
+   if (__collection) { \
+-    id __buf[[__collection count]]; \
+-    NSUInteger __i = 0; \
++    NSMutableArray *__array = [NSMutableArray arrayWithCapacity:[__collection count]]; \
+     for (decl in __collection) {\
+-      if ((__buf[__i] = work)) { \
+-        __i++; \
++      id __mapped = work; \
++      if (__mapped != nil) { \
++        [__array addObject:__mapped]; \
+       } \
+     } \
+-    __result = [NSArray arrayByTransferring:__buf count:__i]; \
++    __result = [__array copy]; \
+   } \
+   __result; \
+ })
 diff --git a/submodules/Postbox/Sources/MessageHistoryViewState.swift b/submodules/Postbox/Sources/MessageHistoryViewState.swift
 index 1449e611ea..02a4cf1532 100644
 --- a/submodules/Postbox/Sources/MessageHistoryViewState.swift
