@@ -1,3 +1,59 @@
+diff --git a/Telegram/NotificationService/Sources/NotificationService.swift b/Telegram/NotificationService/Sources/NotificationService.swift
+index 83b91db681..37b12d8b28 100644
+--- a/Telegram/NotificationService/Sources/NotificationService.swift
++++ b/Telegram/NotificationService/Sources/NotificationService.swift
+@@ -29,6 +29,23 @@ private func setupSharedLogger(rootPath: String, path: String) {
+     }
+ }
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ private let accountAuxiliaryMethods = AccountAuxiliaryMethods(fetchResource: { account, resource, ranges, _ in
+     return nil
+ }, fetchResourceMediaReferenceHash: { resource in
+diff --git a/Telegram/SiriIntents/IntentHandler.swift b/Telegram/SiriIntents/IntentHandler.swift
+index b1bee82fcc..5980a25fc7 100644
+--- a/Telegram/SiriIntents/IntentHandler.swift
++++ b/Telegram/SiriIntents/IntentHandler.swift
+@@ -22,6 +22,23 @@ private func setupSharedLogger(rootPath: String, path: String) {
+     }
+ }
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ private let accountAuxiliaryMethods = AccountAuxiliaryMethods(fetchResource: { account, resource, ranges, _ in
+     return nil
+ }, fetchResourceMediaReferenceHash: { resource in
 diff --git a/submodules/AccountContext/Sources/Premium.swift b/submodules/AccountContext/Sources/Premium.swift
 index 790a21b077..3c47ef3b15 100644
 --- a/submodules/AccountContext/Sources/Premium.swift
