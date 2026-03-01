@@ -7,7 +7,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 SOURCE_DIR="$1"
-PATCH_FILE="$(cd "$(dirname "$0")/.." && pwd)/patches/0001-remove-premium-and-ads.patch"
+PATCH_FILE="$(cd "$(dirname "$0")/.." && pwd)/patches/0001-lite-trim-heavy-features.patch"
 
 if [[ ! -d "$SOURCE_DIR/.git" ]]; then
   echo "Source dir is not a git repository: $SOURCE_DIR" >&2

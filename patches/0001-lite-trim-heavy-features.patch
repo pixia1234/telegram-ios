@@ -1,0 +1,339 @@
+diff --git a/submodules/AccountContext/Sources/Premium.swift b/submodules/AccountContext/Sources/Premium.swift
+index 51a2c3f0..66667195 100644
+--- a/submodules/AccountContext/Sources/Premium.swift
++++ b/submodules/AccountContext/Sources/Premium.swift
+@@ -150,7 +150,7 @@ public enum StarsPurchasePurpose: Equatable {
+ public struct PremiumConfiguration {
+     public static var defaultValue: PremiumConfiguration {
+         return PremiumConfiguration(
+-            isPremiumDisabled: false,
++            isPremiumDisabled: true,
+             areStarsDisabled: true,
+             subscriptionManagementUrl: "",
+             showPremiumGiftInAttachMenu: false,
+@@ -273,14 +273,14 @@ public struct PremiumConfiguration {
+                 return (value as? Double).flatMap(Int32.init)
+             }
+             return PremiumConfiguration(
+-                isPremiumDisabled: data["premium_purchase_blocked"] as? Bool ?? defaultValue.isPremiumDisabled,
+-                areStarsDisabled: data["stars_purchase_blocked"] as? Bool ?? defaultValue.areStarsDisabled,
++                isPremiumDisabled: true,
++                areStarsDisabled: true,
+                 subscriptionManagementUrl: data["premium_manage_subscription_url"] as? String ?? "",
+-                showPremiumGiftInAttachMenu: data["premium_gift_attach_menu_icon"] as? Bool ?? defaultValue.showPremiumGiftInAttachMenu,
+-                showPremiumGiftInTextField: data["premium_gift_text_field_icon"] as? Bool ?? defaultValue.showPremiumGiftInTextField,
+-                giveawayGiftsPurchaseAvailable: data["giveaway_gifts_purchase_available"] as? Bool ?? defaultValue.giveawayGiftsPurchaseAvailable,
+-                starsGiftsPurchaseAvailable: data["stars_gifts_enabled"] as? Bool ?? defaultValue.starsGiftsPurchaseAvailable,
+-                starGiftsPurchaseBlocked: data["stargifts_blocked"] as? Bool ?? defaultValue.starGiftsPurchaseBlocked,
++                showPremiumGiftInAttachMenu: false,
++                showPremiumGiftInTextField: false,
++                giveawayGiftsPurchaseAvailable: false,
++                starsGiftsPurchaseAvailable: false,
++                starGiftsPurchaseBlocked: true,
+                 boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
+                 audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
+                 audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,
+diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
+index 8c48207f..1513e201 100644
+--- a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
++++ b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
+@@ -635,18 +635,7 @@ public class AdMessagesHistoryContext {
+     public let messageId: EngineMessage.Id?
+     
+     public var state: Signal<(interPostInterval: Int32?, messages: [Message], startDelay: Int32?, betweenDelay: Int32?), NoError> {
+-        return Signal { subscriber in
+-            let disposable = MetaDisposable()
+-            
+-            self.impl.with { impl in
+-                let stateDisposable = impl.state.get().start(next: { state in
+-                    subscriber.putNext((state.interPostInterval, state.messages, state.startDelay, state.betweenDelay))
+-                })
+-                disposable.set(stateDisposable)
+-            }
+-            
+-            return disposable
+-        }
++        return .single((interPostInterval: nil, messages: [], startDelay: nil, betweenDelay: nil))
+     }
+     
+     public init(account: Account, peerId: EnginePeer.Id, messageId: EngineMessage.Id? = nil, activateManually: Bool = false) {
+@@ -655,7 +644,7 @@ public class AdMessagesHistoryContext {
+         
+         let queue = self.queue
+         self.impl = QueueLocalObject(queue: queue, generate: {
+-            return AdMessagesHistoryContextImpl(queue: queue, account: account, peerId: peerId, messageId: messageId, activateManually: activateManually)
++            return AdMessagesHistoryContextImpl(queue: queue, account: account, peerId: peerId, messageId: messageId, activateManually: true)
+         })
+     }
+ 
+diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift b/submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift
+index 62f16197..23e5ba0f 100644
+--- a/submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift
++++ b/submodules/TelegramCore/Sources/TelegramEngine/Peers/AdPeers.swift
+@@ -39,60 +39,5 @@ public class AdPeer: Equatable {
+ }
+ 
+ func _internal_searchAdPeers(account: Account, query: String) -> Signal<[AdPeer], NoError> {
+-    return account.network.request(Api.functions.contacts.getSponsoredPeers(q: query))
+-    |> map(Optional.init)
+-    |> `catch` { _ in
+-        return .single(nil)
+-    }
+-    |> mapToSignal { result in
+-        guard let result else {
+-            return .single([])
+-        }
+-        return account.postbox.transaction { transaction -> [AdPeer] in
+-            switch result {
+-            case let .sponsoredPeers(sponsoredPeersData):
+-                let (peers, chats, users) = (sponsoredPeersData.peers, sponsoredPeersData.chats, sponsoredPeersData.users)
+-                let parsedPeers = AccumulatedPeers(transaction: transaction, chats: chats, users: users)
+-                updatePeers(transaction: transaction, accountPeerId: account.peerId, peers: parsedPeers)
+-                
+-                var subscribers: [PeerId: Int32] = [:]
+-                for chat in chats {
+-                    if let groupOrChannel = parseTelegramGroupOrChannel(chat: chat) {
+-                        switch chat {
+-                        case let .channel(channelData):
+-                            let participantsCount = channelData.participantsCount
+-                            if let participantsCount = participantsCount {
+-                                subscribers[groupOrChannel.id] = participantsCount
+-                            }
+-                        default:
+-                            break
+-                        }
+-                    }
+-                }
+-                
+-                var result: [AdPeer] = []
+-                for peer in peers {
+-                    switch peer {
+-                    case let .sponsoredPeer(sponsoredPeerData):
+-                        let (randomId, apiPeer, sponsorInfo, additionalInfo) = (sponsoredPeerData.randomId, sponsoredPeerData.peer, sponsoredPeerData.sponsorInfo, sponsoredPeerData.additionalInfo)
+-                        guard let peer = parsedPeers.get(apiPeer.peerId) else {
+-                            continue
+-                        }
+-                        result.append(
+-                            AdPeer(
+-                                opaqueId: randomId.makeData(),
+-                                peer: EnginePeer(peer),
+-                                subscribers: subscribers[peer.id],
+-                                sponsorInfo: sponsorInfo,
+-                                additionalInfo: additionalInfo
+-                            )
+-                        )
+-                    }
+-                }
+-                return result
+-            default:
+-                return []
+-            }
+-        }
+-    }
++    return .single([])
+ }
+diff --git a/submodules/TelegramCore/Sources/Utils/PeerUtils.swift b/submodules/TelegramCore/Sources/Utils/PeerUtils.swift
+index 49eb1535..261ab951 100644
+--- a/submodules/TelegramCore/Sources/Utils/PeerUtils.swift
++++ b/submodules/TelegramCore/Sources/Utils/PeerUtils.swift
+@@ -207,12 +207,7 @@ public extension Peer {
+     }
+     
+     var isPremium: Bool {
+-        switch self {
+-        case let user as TelegramUser:
+-            return user.flags.contains(.isPremium)
+-        default:
+-            return false
+-        }
++        return false
+     }
+     
+     var isSubscription: Bool {
+diff --git a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
+index 5ea627c2..473429e0 100644
+--- a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
++++ b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
+@@ -229,25 +229,7 @@ extension ChatControllerImpl {
+             return entry ?? GeneratedMediaStoreSettings.defaultSettings
+         }
+         
+-        let premiumConfiguration = PremiumConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
+-        let premiumGiftOptions: [CachedPremiumGiftOption]
+-        
+-        var showPremiumGift = false
+-        if !premiumConfiguration.isPremiumDisabled && self.presentationInterfaceState.disallowedGifts != TelegramDisallowedGifts.All {
+-            if self.presentationInterfaceState.alwaysShowGiftButton {
+-                showPremiumGift = true
+-            } else if self.presentationInterfaceState.hasBirthdayToday {
+-                showPremiumGift = true
+-            } else if premiumConfiguration.showPremiumGiftInAttachMenu || premiumConfiguration.showPremiumGiftInTextField {
+-                showPremiumGift = true
+-            }
+-        }
+-        
+-        if let peer = self.presentationInterfaceState.renderedPeer?.peer, showPremiumGift, let user = peer as? TelegramUser, !user.isDeleted && user.botInfo == nil && !user.flags.contains(.isSupport) {
+-            premiumGiftOptions = self.presentationInterfaceState.premiumGiftOptions
+-        } else {
+-            premiumGiftOptions = []
+-        }
++        let premiumGiftOptions: [CachedPremiumGiftOption] = []
+         
+         let _ = combineLatest(queue: Queue.mainQueue(), buttons, dataSettings).startStandalone(next: { [weak self] buttonsAndInitialButton, dataSettings in
+             guard let strongSelf = self else {
+@@ -255,6 +237,26 @@ extension ChatControllerImpl {
+             }
+             
+             var (buttons, allButtons, initialButton) = buttonsAndInitialButton
++
++            func isRemovedInLiteMode(_ button: AttachmentButton) -> Bool {
++                if case .gift = button {
++                    return true
++                }
++                if case .todo = button {
++                    return true
++                }
++                if case .app = button {
++                    return true
++                }
++                return false
++            }
++
++            buttons.removeAll(where: isRemovedInLiteMode)
++            allButtons.removeAll(where: isRemovedInLiteMode)
++            if let currentInitialButton = initialButton, isRemovedInLiteMode(currentInitialButton) {
++                initialButton = allButtons.first ?? buttons.first ?? .gallery
++            }
++
+             if !premiumGiftOptions.isEmpty {
+                 buttons.insert(.gift, at: 1)
+             }
+@@ -2112,6 +2114,11 @@ extension ChatControllerImpl {
+     }
+     
+     func openTodoEditing(messageId: EngineMessage.Id, itemId: Int32?, append: Bool) {
++        let todoEnabled = (self.context.currentAppConfiguration.with { $0 }.data?["lite_enable_todo"] as? Bool) ?? false
++        if !todoEnabled {
++            return
++        }
++
+         guard let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId), let peer = self.presentationInterfaceState.renderedPeer?.peer else {
+             return
+         }
+diff --git a/submodules/TelegramUI/Sources/TelegramRootController.swift b/submodules/TelegramUI/Sources/TelegramRootController.swift
+index 2199dbfe..6f6cd699 100644
+--- a/submodules/TelegramUI/Sources/TelegramRootController.swift
++++ b/submodules/TelegramUI/Sources/TelegramRootController.swift
+@@ -127,14 +127,17 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
+                 context.sharedContext.mainWindow?.setForceBadgeHidden(!value)
+             })
+             
+-            self.storyUploadEventsDisposable = (context.engine.messages.allStoriesUploadEvents()
+-            |> deliverOnMainQueue).startStrict(next: { [weak self] event in
+-                guard let self else {
+-                    return
+-                }
+-                let (stableId, id) = event
+-                moveStorySource(engine: self.context.engine, peerId: self.context.account.peerId, from: Int64(stableId), to: Int64(id))
+-            })
++            let storiesEnabled = (context.currentAppConfiguration.with { $0 }.data?["lite_enable_stories"] as? Bool) ?? false
++            if storiesEnabled {
++                self.storyUploadEventsDisposable = (context.engine.messages.allStoriesUploadEvents()
++                |> deliverOnMainQueue).startStrict(next: { [weak self] event in
++                    guard let self else {
++                        return
++                    }
++                    let (stableId, id) = event
++                    moveStorySource(engine: self.context.engine, peerId: self.context.account.peerId, from: Int64(stableId), to: Int64(id))
++                })
++            }
+         }
+     }
+     
+@@ -195,26 +198,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
+         super.containerLayoutUpdated(layout, transition: transition)
+     }
+     
+-    public func addRootControllers(showCallsTab: Bool) {
++    public func addRootControllers(showCallsTab _: Bool) {
+         let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings)
+         tabBarController.navigationPresentation = .master
+         let chatListController = self.context.sharedContext.makeChatListController(context: self.context, location: .chatList(groupId: .root), controlsHistoryPreload: true, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: !GlobalExperimentalSettings.isAppStoreBuild)
+         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {
+             chatListController.tabBarItem.badgeValue = sharedContext.switchingData.chatListBadge
+         }
+-        let callListController = CallListController(context: self.context, mode: .tab)
+         
+         var controllers: [ViewController] = []
+-        
+-        let contactsController = ContactsController(context: self.context)
+-        contactsController.switchToChatsController = {  [weak self] in
+-            self?.openChatsController(activateSearch: false)
+-        }
+-        controllers.append(contactsController)
+-        
+-        if showCallsTab {
+-            controllers.append(callListController)
+-        }
+         controllers.append(chatListController)
+         
+         var restoreSettignsController: (ViewController & SettingsController)?
+@@ -238,25 +230,25 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
+                 
+         tabBarController.setControllers(controllers, selectedIndex: restoreSettignsController != nil ? (controllers.count - 1) : (controllers.count - 2))
+         
+-        self.contactsController = contactsController
+-        self.callListController = callListController
++        self.contactsController = nil
++        self.callListController = nil
+         self.chatListController = chatListController
+         self.accountSettingsController = accountSettingsController
+         self.rootTabController = tabBarController
+         self.pushViewController(tabBarController, animated: false)
+     }
+         
+-    public func updateRootControllers(showCallsTab: Bool) {
++    public func updateRootControllers(showCallsTab _: Bool) {
+         guard let rootTabController = self.rootTabController as? TabBarControllerImpl else {
+             return
+         }
+         var controllers: [ViewController] = []
+-        controllers.append(self.contactsController!)
+-        if showCallsTab {
+-            controllers.append(self.callListController!)
++        if let chatListController = self.chatListController {
++            controllers.append(chatListController)
++        }
++        if let accountSettingsController = self.accountSettingsController {
++            controllers.append(accountSettingsController)
+         }
+-        controllers.append(self.chatListController!)
+-        controllers.append(self.accountSettingsController!)
+         
+         rootTabController.setControllers(controllers, selectedIndex: nil)
+     }
+@@ -310,6 +302,11 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
+     
+     @discardableResult
+     public func openStoryCamera(mode: StoryCameraMode, customTarget: Stories.PendingTarget?, resumeLiveStream: Bool, transitionIn: StoryCameraTransitionIn?, transitionedIn: @escaping () -> Void, transitionOut: @escaping (Stories.PendingTarget?, Bool) -> StoryCameraTransitionOut?) -> StoryCameraTransitionInCoordinator? {
++        let storiesEnabled = (self.context.currentAppConfiguration.with { $0 }.data?["lite_enable_stories"] as? Bool) ?? false
++        if !storiesEnabled {
++            return nil
++        }
++
+         guard let controller = self.viewControllers.last as? ViewController else {
+             return nil
+         }
+@@ -573,6 +570,12 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
+     }
+     
+     public func proceedWithStoryUpload(target: Stories.PendingTarget, results: [MediaEditorScreenResult], existingMedia: EngineMedia?, forwardInfo: Stories.PendingForwardInfo?, externalState: MediaEditorTransitionOutExternalState, commit: @escaping (@escaping () -> Void) -> Void) {
++        let storiesEnabled = (self.context.currentAppConfiguration.with { $0 }.data?["lite_enable_stories"] as? Bool) ?? false
++        if !storiesEnabled {
++            commit({})
++            return
++        }
++
+         guard let results = results as? [MediaEditorScreenImpl.Result] else {
+             return
+         }
