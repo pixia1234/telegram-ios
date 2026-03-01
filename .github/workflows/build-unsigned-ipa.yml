@@ -40,8 +40,11 @@ jobs:
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
           XCODE_VERSION=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["xcode"])' "$SOURCE_DIR/versions.json")
           PREFERRED="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          DEFAULT_XCODE="/Applications/Xcode.app/Contents/Developer"
 
-          if [[ -d "$PREFERRED/Platforms/iPhoneOS.platform" ]]; then
+          if [[ -d "$DEFAULT_XCODE/Platforms/iPhoneOS.platform" ]]; then
+            SELECTED_DEVELOPER="$DEFAULT_XCODE"
+          elif [[ -d "$PREFERRED/Platforms/iPhoneOS.platform" ]]; then
             SELECTED_DEVELOPER="$PREFERRED"
           else
             SELECTED_DEVELOPER=""
@@ -56,6 +59,7 @@ jobs:
             fi
           fi
 
+          echo "Using Xcode developer dir: $SELECTED_DEVELOPER"
           sudo xcode-select -s "$SELECTED_DEVELOPER"
           xcodebuild -version
 
