@@ -468,6 +468,43 @@ index 7353213b80..3aba3a14ea 100644
  public let softwareVideoApplyQueue = Queue()
  public let softwareVideoWorkers = ThreadPool(threadCount: 3, threadPriority: 0.2)
  private var nextWorker = 0
+diff --git a/submodules/StatisticsUI/Sources/StatsOverviewItem.swift b/submodules/StatisticsUI/Sources/StatsOverviewItem.swift
+index 26b078703c..e80a41a040 100644
+--- a/submodules/StatisticsUI/Sources/StatsOverviewItem.swift
++++ b/submodules/StatisticsUI/Sources/StatsOverviewItem.swift
+@@ -548,11 +548,7 @@ class StatsOverviewItemNode: ListViewItemNode {
+                     .generic
+                 )
+                 
+-                if twoColumnLayout {
+-                    height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
+-                } else {
+-                    height += topLeftItemLayoutAndApply!.0.height * 4.0 + verticalSpacing * 3.0
+-                }
++                height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
+             } else if let stats = item.stats as? ChannelStats {
+                 let viewsPerPostDelta = deltaText(stats.viewsPerPost)
+                 let sharesPerPostDelta = deltaText(stats.sharesPerPost)
+@@ -703,12 +699,8 @@ class StatsOverviewItemNode: ListViewItemNode {
+                 }
+ 
+                 let valuesCount = CGFloat(2 + items.count)
+-                if twoColumnLayout {
+-                    let rowsCount = ceil(valuesCount / 2.0)
+-                    height += topLeftItemLayoutAndApply!.0.height * rowsCount + (verticalSpacing * (rowsCount - 1.0))
+-                } else {
+-                    height += topLeftItemLayoutAndApply!.0.height * valuesCount + (verticalSpacing * (valuesCount - 1.0))
+-                }
++                let rowsCount = ceil(valuesCount / 2.0)
++                height += topLeftItemLayoutAndApply!.0.height * rowsCount + (verticalSpacing * (rowsCount - 1.0))
+             } else if let stats = item.stats as? GroupStats {
+                 let viewersDelta = deltaText(stats.viewers)
+                 let postersDelta = deltaText(stats.posters)
+@@ -1059,4 +1051,3 @@ class StatsOverviewItemNode: ListViewItemNode {
+         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
+     }
+ }
+-
 diff --git a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
 index 3f07e3bb5e..0862fd3e81 100644
 --- a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
