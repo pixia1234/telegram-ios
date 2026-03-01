@@ -239,6 +239,35 @@ index dd15d1aca4..95c9b29f66 100644
    } \
    __result; \
  })
+diff --git a/submodules/BrowserUI/Sources/BrowserWebContent.swift b/submodules/BrowserUI/Sources/BrowserWebContent.swift
+index 3ffa7a7d6a..ec524c9ef6 100644
+--- a/submodules/BrowserUI/Sources/BrowserWebContent.swift
++++ b/submodules/BrowserUI/Sources/BrowserWebContent.swift
+@@ -24,6 +24,10 @@ import DeviceModel
+ import LegacyMediaPickerUI
+ import PassKit
+ 
++private struct UncheckedSendableValue<T>: @unchecked Sendable {
++    let value: T
++}
++
+ private final class TonSchemeHandler: NSObject, WKURLSchemeHandler {
+     private final class PendingTask {
+         let sourceTask: any WKURLSchemeTask
+@@ -51,11 +55,13 @@ private final class TonSchemeHandler: NSObject, WKURLSchemeHandler {
+             }
+             let mappedUrl = "https://\(mappedHost).\(proxyServerHost)\(mappedPath)"
+             let isCompleted = self.isCompleted
++            let sendableSourceTask = UncheckedSendableValue(value: sourceTask)
+             self.urlSessionTask = URLSession.shared.dataTask(with: URLRequest(url: URL(string: mappedUrl)!), completionHandler: { data, response, error in
+                 if isCompleted.swap(true) {
+                     return
+                 }
+                 
++                let sourceTask = sendableSourceTask.value
+                 if let error {
+                     sourceTask.didFailWithError(error)
+                 } else {
 diff --git a/submodules/LegacyComponents/Sources/ActionStage.mm b/submodules/LegacyComponents/Sources/ActionStage.mm
 index 7afbbead51..fe2485fb56 100644
 --- a/submodules/LegacyComponents/Sources/ActionStage.mm
