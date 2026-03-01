@@ -67,6 +67,7 @@ jobs:
 
           python3 -u "$SOURCE_DIR/build-system/Make/Make.py" \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
+            --bazelArguments="--//Telegram:disableProvisioningProfiles" \
             build \
             --configurationPath="$SOURCE_DIR/build-system/appstore-configuration.json" \
             --codesigningInformationPath="$SOURCE_DIR/build-system/fake-codesigning" \
