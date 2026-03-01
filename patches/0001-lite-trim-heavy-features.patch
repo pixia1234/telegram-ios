@@ -1,3 +1,15 @@
+diff --git a/build-system/Make/Make.py b/build-system/Make/Make.py
+index e9403e27d5..28a7b69649 100644
+--- a/build-system/Make/Make.py
++++ b/build-system/Make/Make.py
+@@ -587,6 +587,7 @@ def build(bazel, arguments):
+     bazel_command_line.set_enable_sandbox(arguments.sandbox)
+ 
+     bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)
++    bazel_command_line.set_disable_provisioning_profiles()
+ 
+     bazel_command_line.invoke_build()
+ 
 diff --git a/submodules/AccountContext/Sources/Premium.swift b/submodules/AccountContext/Sources/Premium.swift
 index 790a21b077..3c47ef3b15 100644
 --- a/submodules/AccountContext/Sources/Premium.swift
