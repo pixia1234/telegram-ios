@@ -34,6 +34,31 @@ index 790a21b077..3c47ef3b15 100644
                  boostsPerGiftCount: get(data["boosts_per_sent_gift"]) ?? defaultValue.boostsPerGiftCount,
                  audioTransciptionTrialMaxDuration: get(data["transcribe_audio_trial_duration_max"]) ?? defaultValue.audioTransciptionTrialMaxDuration,
                  audioTransciptionTrialCount: get(data["transcribe_audio_trial_weekly_number"]) ?? defaultValue.audioTransciptionTrialCount,
+diff --git a/submodules/AsyncDisplayKit/Source/ASDisplayNode+Layout.mm b/submodules/AsyncDisplayKit/Source/ASDisplayNode+Layout.mm
+index 32934a599c..873d2a573c 100644
+--- a/submodules/AsyncDisplayKit/Source/ASDisplayNode+Layout.mm
++++ b/submodules/AsyncDisplayKit/Source/ASDisplayNode+Layout.mm
+@@ -909,16 +909,16 @@ ASLayoutElementStyleExtensibilityForwarding
+ 
+   MutexLocker l(__instanceLock__);
+   NSArray<ASLayout *> *sublayouts = _calculatedDisplayNodeLayout.layout.sublayouts;
+-  unowned ASLayout *cSublayouts[sublayouts.count];
+-  [sublayouts getObjects:cSublayouts range:NSMakeRange(0, AS_ARRAY_SIZE(cSublayouts))];
++  const NSUInteger sublayoutsCount = sublayouts.count;
+ 
+   // Fast-path if we are in the correct state (likely).
+-  if (_subnodes.count == AS_ARRAY_SIZE(cSublayouts)) {
++  if (_subnodes.count == sublayoutsCount) {
+     NSUInteger i = 0;
+     BOOL matches = YES;
+     for (ASDisplayNode *subnode in _subnodes) {
+-      if (subnode != cSublayouts[i].layoutElement) {
++      if (subnode != ((ASLayout *)sublayouts[i]).layoutElement) {
+         matches = NO;
++        break;
+       }
+       i++;
+     }
 diff --git a/submodules/AsyncDisplayKit/Source/ASLayout.mm b/submodules/AsyncDisplayKit/Source/ASLayout.mm
 index 6a6a96f24c..9db6dee0b5 100644
 --- a/submodules/AsyncDisplayKit/Source/ASLayout.mm
@@ -136,6 +161,58 @@ index dd15d1aca4..95c9b29f66 100644
    } \
    __result; \
  })
+diff --git a/submodules/LegacyComponents/Sources/ActionStage.mm b/submodules/LegacyComponents/Sources/ActionStage.mm
+index 7afbbead51..fe2485fb56 100644
+--- a/submodules/LegacyComponents/Sources/ActionStage.mm
++++ b/submodules/LegacyComponents/Sources/ActionStage.mm
+@@ -244,7 +244,9 @@ ActionStage *ActionStageInstance()
+         return @"";
+     
+     int length = (int)path.length;
+-    unichar newPath[path.length];
++    unichar *newPath = (unichar *)malloc(sizeof(unichar) * MAX(1, length));
++    if (newPath == NULL)
++        return path;
+     int newLength = 0;
+     
+     SEL sel = @selector(characterAtIndex:);
+@@ -273,9 +275,13 @@ ActionStage *ActionStageInstance()
+     }
+     
+     if (!skippedCharacters)
++    {
++        free(newPath);
+         return path;
++    }
+     
+     NSString *genericPath = [[NSString alloc] initWithCharacters:newPath length:newLength];
++    free(newPath);
+     return genericPath;
+ }
+ 
+diff --git a/submodules/LegacyComponents/Sources/TGStringUtils.mm b/submodules/LegacyComponents/Sources/TGStringUtils.mm
+index 872fdd1411..8d27318648 100644
+--- a/submodules/LegacyComponents/Sources/TGStringUtils.mm
++++ b/submodules/LegacyComponents/Sources/TGStringUtils.mm
+@@ -1133,7 +1133,9 @@ int32_t legacy_murMurHashBytes32(void *bytes, int length)
+ int32_t phoneMatchHash(NSString *phone)
+ {
+     int length = (int)phone.length;
+-    char cleanString[length];
++    char *cleanString = (char *)malloc(MAX(1, length));
++    if (cleanString == NULL)
++        return 0;
+     int cleanLength = 0;
+     
+     for (int i = 0; i < length; i++)
+@@ -1149,6 +1151,7 @@ int32_t phoneMatchHash(NSString *phone)
+     else
+         MurmurHash3_x86_32((uint8_t *)cleanString, cleanLength, -137723950, &result);
+     
++    free(cleanString);
+     return result;
+ }
+ 
 diff --git a/submodules/Postbox/Sources/MessageHistoryViewState.swift b/submodules/Postbox/Sources/MessageHistoryViewState.swift
 index 1449e611ea..02a4cf1532 100644
 --- a/submodules/Postbox/Sources/MessageHistoryViewState.swift
