@@ -59,6 +59,28 @@ index 32934a599c..873d2a573c 100644
        }
        i++;
      }
+diff --git a/submodules/AsyncDisplayKit/Source/ASInternalHelpers.mm b/submodules/AsyncDisplayKit/Source/ASInternalHelpers.mm
+index a9926ccca4..76c85840d6 100644
+--- a/submodules/AsyncDisplayKit/Source/ASInternalHelpers.mm
++++ b/submodules/AsyncDisplayKit/Source/ASInternalHelpers.mm
+@@ -140,10 +140,15 @@ Class _Nullable ASGetClassFromType(const char  * _Nullable type)
+ 
+   // Copy type[2..(end-1)]. So @"UIImage" -> UIImage
+   size_t resultLength = typeLength - 3;
+-  char className[resultLength + 1];
++  char *className = (char *)malloc(resultLength + 1);
++  if (className == NULL) {
++    return Nil;
++  }
+   strncpy(className, type + 2, resultLength);
+   className[resultLength] = '\0';
+-  return objc_getClass(className);
++  Class result = objc_getClass(className);
++  free(className);
++  return result;
+ }
+ 
+ CGFloat ASScreenScale()
 diff --git a/submodules/AsyncDisplayKit/Source/ASLayout.mm b/submodules/AsyncDisplayKit/Source/ASLayout.mm
 index 6a6a96f24c..9db6dee0b5 100644
 --- a/submodules/AsyncDisplayKit/Source/ASLayout.mm
@@ -190,6 +212,23 @@ index 7afbbead51..fe2485fb56 100644
      return genericPath;
  }
  
+diff --git a/submodules/LegacyComponents/Sources/Freedom.mm b/submodules/LegacyComponents/Sources/Freedom.mm
+index f25b1e355f..3ca6d0ac81 100644
+--- a/submodules/LegacyComponents/Sources/Freedom.mm
++++ b/submodules/LegacyComponents/Sources/Freedom.mm
+@@ -256,11 +256,7 @@ static bool consumeField(const char *desc, int length, int &offset, uint32_t &ou
+         if (desc[i] == '"')
+         {
+             outName = (uint32_t)murMurHashBytes32((void *)(desc + offset), i - offset);
+-            
+-            char buf[i - offset + 1];
+-            memcpy(buf, desc + offset, i - offset);
+-            buf[i - offset] = 0;
+-            
++
+             int newOffset = i + 1;
+             if (consumeToken(desc, length, newOffset, "b"))
+             {
 diff --git a/submodules/LegacyComponents/Sources/TGStringUtils.mm b/submodules/LegacyComponents/Sources/TGStringUtils.mm
 index 872fdd1411..8d27318648 100644
 --- a/submodules/LegacyComponents/Sources/TGStringUtils.mm
