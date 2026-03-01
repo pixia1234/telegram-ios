@@ -57,6 +57,12 @@ jobs:
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
 
+          # 11.9.0 fake-codesigning keeps this profile at the root; Make.py reads from profiles/.
+          if [[ -f "$SOURCE_DIR/build-system/fake-codesigning/BroadcastUpload.mobileprovision" ]]; then
+            cp -f "$SOURCE_DIR/build-system/fake-codesigning/BroadcastUpload.mobileprovision" \
+              "$SOURCE_DIR/build-system/fake-codesigning/profiles/BroadcastUpload.mobileprovision"
+          fi
+
           python3 "$SOURCE_DIR/build-system/Make/ImportCertificates.py" --path "$SOURCE_DIR/build-system/fake-codesigning/certs"
 
           python3 -u "$SOURCE_DIR/build-system/Make/Make.py" \
