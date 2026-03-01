@@ -47,6 +47,7 @@ jobs:
         run: |
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
+          cd "$SOURCE_DIR"
 
           BUILD_NUMBER_OFFSET="$(cat "$SOURCE_DIR/build_number_offset")"
           APP_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["app"])' "$SOURCE_DIR/versions.json")"
