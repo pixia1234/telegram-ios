@@ -308,6 +308,62 @@ index 872fdd1411..8d27318648 100644
      return result;
  }
  
+diff --git a/submodules/LegacyMediaPickerUI/Sources/LegacyMediaPickers.swift b/submodules/LegacyMediaPickerUI/Sources/LegacyMediaPickers.swift
+index c88ee2e026..596b966a52 100644
+--- a/submodules/LegacyMediaPickerUI/Sources/LegacyMediaPickers.swift
++++ b/submodules/LegacyMediaPickerUI/Sources/LegacyMediaPickers.swift
+@@ -15,6 +15,23 @@ import LocalMediaResources
+ import LegacyUI
+ import TextFormat
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ public func guessMimeTypeByFileExtension(_ ext: String) -> String {
+     return TGMimeTypeMap.mimeType(forExtension: ext) ?? "application/binary"
+ }
+diff --git a/submodules/MediaPlayer/Sources/FFMpegMediaFrameSourceContext.swift b/submodules/MediaPlayer/Sources/FFMpegMediaFrameSourceContext.swift
+index 82e8c5aa3f..b1c0b5180a 100644
+--- a/submodules/MediaPlayer/Sources/FFMpegMediaFrameSourceContext.swift
++++ b/submodules/MediaPlayer/Sources/FFMpegMediaFrameSourceContext.swift
+@@ -5,6 +5,23 @@ import CoreMedia
+ import TelegramCore
+ import FFMpegBinding
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ private struct StreamContext {
+     let index: Int
+     let codecContext: FFMpegAVCodecContext?
 diff --git a/submodules/Postbox/Sources/MessageHistoryViewState.swift b/submodules/Postbox/Sources/MessageHistoryViewState.swift
 index 1449e611ea..02a4cf1532 100644
 --- a/submodules/Postbox/Sources/MessageHistoryViewState.swift
@@ -384,6 +440,34 @@ index 1449e611ea..02a4cf1532 100644
          for entry in self.lowerOrAtAnchor {
              assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
          }
+diff --git a/submodules/SoftwareVideo/Sources/SoftwareVideoLayerFrameManager.swift b/submodules/SoftwareVideo/Sources/SoftwareVideoLayerFrameManager.swift
+index 7353213b80..3aba3a14ea 100644
+--- a/submodules/SoftwareVideo/Sources/SoftwareVideoLayerFrameManager.swift
++++ b/submodules/SoftwareVideo/Sources/SoftwareVideoLayerFrameManager.swift
+@@ -7,6 +7,23 @@ import CoreMedia
+ import UniversalMediaPlayer
+ import AVFoundation
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ public let softwareVideoApplyQueue = Queue()
+ public let softwareVideoWorkers = ThreadPool(threadCount: 3, threadPriority: 0.2)
+ private var nextWorker = 0
 diff --git a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
 index 3f07e3bb5e..0862fd3e81 100644
 --- a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
@@ -739,6 +823,188 @@ index e967e561ae..0ab2650bfd 100644
      }
      
      var isSubscription: Bool {
+diff --git a/submodules/TelegramUI/Components/EmojiStatusComponent/Sources/EmojiStatusComponent.swift b/submodules/TelegramUI/Components/EmojiStatusComponent/Sources/EmojiStatusComponent.swift
+index c5d3a8ab92..8763f7b054 100644
+--- a/submodules/TelegramUI/Components/EmojiStatusComponent/Sources/EmojiStatusComponent.swift
++++ b/submodules/TelegramUI/Components/EmojiStatusComponent/Sources/EmojiStatusComponent.swift
+@@ -16,6 +16,23 @@ import GZip
+ import HierarchyTrackingLayer
+ import TelegramUIPreferences
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ public final class EmojiStatusComponent: Component {
+     public typealias EnvironmentType = Empty
+     
+diff --git a/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftTransferAlertController.swift b/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftTransferAlertController.swift
+index a5a063827f..58c8c129be 100644
+--- a/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftTransferAlertController.swift
++++ b/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftTransferAlertController.swift
+@@ -201,7 +201,6 @@ private final class GiftTransferAlertContentNode: AlertContentNode {
+         let maxActionWidth: CGFloat = floor(size.width / CGFloat(self.actionNodes.count))
+         let actionTitleInsets: CGFloat = 8.0
+         
+-        let effectiveActionLayout = TextAlertContentActionLayout.vertical
+         for actionNode in self.actionNodes {
+             let actionTitleSize = actionNode.titleNode.updateLayout(CGSize(width: maxActionWidth, height: actionButtonHeight))
+             minActionsWidth = max(minActionsWidth, actionTitleSize.width + actionTitleInsets)
+@@ -217,46 +216,20 @@ private final class GiftTransferAlertContentNode: AlertContentNode {
+         transition.updateFrame(node: self.actionNodesSeparator, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+         
+         var actionOffset: CGFloat = 0.0
+-        let actionWidth: CGFloat = floor(resultSize.width / CGFloat(self.actionNodes.count))
+         var separatorIndex = -1
+-        var nodeIndex = 0
+         for actionNode in self.actionNodes {
+             if separatorIndex >= 0 {
+                 let separatorNode = self.actionVerticalSeparators[separatorIndex]
+-                switch effectiveActionLayout {
+-                    case .horizontal:
+-                        transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: actionOffset - UIScreenPixel, y: resultSize.height - actionsHeight), size: CGSize(width: UIScreenPixel, height: actionsHeight - UIScreenPixel)))
+-                    case .vertical:
+-                        transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+-                }
++                transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+             }
+             separatorIndex += 1
+             
+-            let currentActionWidth: CGFloat
+-            switch effectiveActionLayout {
+-                case .horizontal:
+-                    if nodeIndex == self.actionNodes.count - 1 {
+-                        currentActionWidth = resultSize.width - actionOffset
+-                    } else {
+-                        currentActionWidth = actionWidth
+-                    }
+-                case .vertical:
+-                    currentActionWidth = resultSize.width
+-            }
++            let currentActionWidth: CGFloat = resultSize.width
+             
+-            let actionNodeFrame: CGRect
+-            switch effectiveActionLayout {
+-                case .horizontal:
+-                    actionNodeFrame = CGRect(origin: CGPoint(x: actionOffset, y: resultSize.height - actionsHeight), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
+-                    actionOffset += currentActionWidth
+-                case .vertical:
+-                    actionNodeFrame = CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
+-                    actionOffset += actionButtonHeight
+-            }
++            let actionNodeFrame = CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
++            actionOffset += actionButtonHeight
+             
+             transition.updateFrame(node: actionNode, frame: actionNodeFrame)
+-            
+-            nodeIndex += 1
+         }
+         
+         if self.inProgress {
+diff --git a/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftWithdrawAlertController.swift b/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftWithdrawAlertController.swift
+index 6fb6a9d67f..7ae84313ed 100644
+--- a/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftWithdrawAlertController.swift
++++ b/submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftWithdrawAlertController.swift
+@@ -207,7 +207,6 @@ private final class GiftWithdrawAlertContentNode: AlertContentNode {
+         let maxActionWidth: CGFloat = floor(size.width / CGFloat(self.actionNodes.count))
+         let actionTitleInsets: CGFloat = 8.0
+         
+-        let effectiveActionLayout = TextAlertContentActionLayout.vertical
+         for actionNode in self.actionNodes {
+             let actionTitleSize = actionNode.titleNode.updateLayout(CGSize(width: maxActionWidth, height: actionButtonHeight))
+             minActionsWidth = max(minActionsWidth, actionTitleSize.width + actionTitleInsets)
+@@ -223,46 +222,20 @@ private final class GiftWithdrawAlertContentNode: AlertContentNode {
+         transition.updateFrame(node: self.actionNodesSeparator, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+         
+         var actionOffset: CGFloat = 0.0
+-        let actionWidth: CGFloat = floor(resultSize.width / CGFloat(self.actionNodes.count))
+         var separatorIndex = -1
+-        var nodeIndex = 0
+         for actionNode in self.actionNodes {
+             if separatorIndex >= 0 {
+                 let separatorNode = self.actionVerticalSeparators[separatorIndex]
+-                switch effectiveActionLayout {
+-                    case .horizontal:
+-                        transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: actionOffset - UIScreenPixel, y: resultSize.height - actionsHeight), size: CGSize(width: UIScreenPixel, height: actionsHeight - UIScreenPixel)))
+-                    case .vertical:
+-                        transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+-                }
++                transition.updateFrame(node: separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset - UIScreenPixel), size: CGSize(width: resultSize.width, height: UIScreenPixel)))
+             }
+             separatorIndex += 1
+             
+-            let currentActionWidth: CGFloat
+-            switch effectiveActionLayout {
+-                case .horizontal:
+-                    if nodeIndex == self.actionNodes.count - 1 {
+-                        currentActionWidth = resultSize.width - actionOffset
+-                    } else {
+-                        currentActionWidth = actionWidth
+-                    }
+-                case .vertical:
+-                    currentActionWidth = resultSize.width
+-            }
++            let currentActionWidth: CGFloat = resultSize.width
+             
+-            let actionNodeFrame: CGRect
+-            switch effectiveActionLayout {
+-                case .horizontal:
+-                    actionNodeFrame = CGRect(origin: CGPoint(x: actionOffset, y: resultSize.height - actionsHeight), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
+-                    actionOffset += currentActionWidth
+-                case .vertical:
+-                    actionNodeFrame = CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
+-                    actionOffset += actionButtonHeight
+-            }
++            let actionNodeFrame = CGRect(origin: CGPoint(x: 0.0, y: resultSize.height - actionsHeight + actionOffset), size: CGSize(width: currentActionWidth, height: actionButtonHeight))
++            actionOffset += actionButtonHeight
+             
+             transition.updateFrame(node: actionNode, frame: actionNodeFrame)
+-            
+-            nodeIndex += 1
+         }
+         
+         return resultSize
+diff --git a/submodules/TelegramUI/Components/MediaEditorScreen/Sources/EditStories.swift b/submodules/TelegramUI/Components/MediaEditorScreen/Sources/EditStories.swift
+index 02770cd84f..ee8aad3fc0 100644
+--- a/submodules/TelegramUI/Components/MediaEditorScreen/Sources/EditStories.swift
++++ b/submodules/TelegramUI/Components/MediaEditorScreen/Sources/EditStories.swift
+@@ -10,6 +10,23 @@ import SaveToCameraRoll
+ import ImageCompression
+ import LocalMediaResources
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ public extension MediaEditorScreenImpl {
+     static func makeEditStoryController(
+         context: AccountContext,
 diff --git a/submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift b/submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift
 index 675ad51eb1..26fecff7c7 100644
 --- a/submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift
@@ -880,6 +1146,62 @@ index 675ad51eb1..26fecff7c7 100644
          }
      }
      
+diff --git a/submodules/TelegramUI/Components/Resources/FetchVideoMediaResource/Sources/FetchVideoMediaResource.swift b/submodules/TelegramUI/Components/Resources/FetchVideoMediaResource/Sources/FetchVideoMediaResource.swift
+index e02e775051..5543b3f748 100644
+--- a/submodules/TelegramUI/Components/Resources/FetchVideoMediaResource/Sources/FetchVideoMediaResource.swift
++++ b/submodules/TelegramUI/Components/Resources/FetchVideoMediaResource/Sources/FetchVideoMediaResource.swift
+@@ -10,6 +10,23 @@ import LegacyMediaPickerUI
+ import MediaEditor
+ import Photos
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ private final class AVURLAssetCopyItem: MediaResourceDataFetchCopyLocalItem {
+     private let url: URL
+     
+diff --git a/submodules/TelegramUI/Sources/ChatController.swift b/submodules/TelegramUI/Sources/ChatController.swift
+index e38ac9e876..e4884dab1d 100644
+--- a/submodules/TelegramUI/Sources/ChatController.swift
++++ b/submodules/TelegramUI/Sources/ChatController.swift
+@@ -134,6 +134,23 @@ import AdsReportScreen
+ import AdUI
+ import ChatMessagePaymentAlertController
+ 
++private func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
++    var value = stat()
++    if lstat(path, &value) == 0 {
++        if (value.st_mode & S_IFMT) == S_IFLNK {
++            return 0
++        }
++        
++        if useTotalFileAllocatedSize {
++            return Int64(value.st_blocks) * Int64(value.st_blksize)
++        }
++        
++        return value.st_size
++    } else {
++        return nil
++    }
++}
++
+ public enum ChatControllerPeekActions {
+     case standard
+     case remove(() -> Void)
 diff --git a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
 index 7f6a694b9b..250fd613e1 100644
 --- a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
