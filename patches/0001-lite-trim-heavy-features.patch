@@ -328,6 +328,45 @@ index 1449e611ea..02a4cf1532 100644
          for entry in self.lowerOrAtAnchor {
              assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
          }
+diff --git a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
+index 3f07e3bb5e..e0b9170d83 100644
+--- a/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
++++ b/submodules/TelegramCore/Sources/Network/MultipartUpload.swift
+@@ -448,7 +448,7 @@ func multipartUpload(network: Network, postbox: Postbox, source: MultipartUpload
+                     fetchedResource = fetchedMediaResource(mediaBox: postbox.mediaBox, userLocation: .other, userContentType: .other, reference: resource)
+                     |> map { _ in }
+                 case let .tempFile(file):
+-                    if let size = fileSize(file.path) {
++                    if let size = telegramFileSize(file.path) {
+                         dataSignal = .single(.resourceData(MediaResourceData(path: file.path, offset: 0, size: size, complete: true)))
+                         headerSize = 0
+                         fetchedResource = .complete()
+diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Calls/RateCall.swift b/submodules/TelegramCore/Sources/TelegramEngine/Calls/RateCall.swift
+index 297aef9f70..ceaef718ca 100644
+--- a/submodules/TelegramCore/Sources/TelegramEngine/Calls/RateCall.swift
++++ b/submodules/TelegramCore/Sources/TelegramEngine/Calls/RateCall.swift
+@@ -60,7 +60,7 @@ func _internal_saveCompleteCallDebugLog(account: Account, callId: CallId, logPat
+         }
+     }
+     
+-    guard let size = fileSize(tempFile.path) else {
++    guard let size = telegramFileSize(tempFile.path) else {
+         Logger.shared.log("saveCompleteCallDebugLog", "Could not get log file size")
+         
+         return .complete()
+diff --git a/submodules/TelegramCore/Sources/TelegramEngine/HistoryImport/TelegramEngineHistoryImport.swift b/submodules/TelegramCore/Sources/TelegramEngine/HistoryImport/TelegramEngineHistoryImport.swift
+index 46f9494b56..0b89c9559d 100644
+--- a/submodules/TelegramCore/Sources/TelegramEngine/HistoryImport/TelegramEngineHistoryImport.swift
++++ b/submodules/TelegramCore/Sources/TelegramEngine/HistoryImport/TelegramEngineHistoryImport.swift
+@@ -119,7 +119,7 @@ public extension TelegramEngine {
+         
+         public func uploadMedia(session: Session, file: TempBoxFile, disposeFileAfterDone: Bool, fileName: String, mimeType: String, type: MediaType) -> Signal<Float, UploadMediaError> {
+             var forceNoBigParts = true
+-            guard let size = fileSize(file.path), size != 0 else {
++            guard let size = telegramFileSize(file.path), size != 0 else {
+                 return .single(1.0)
+             }
+             if size >= 30 * 1024 * 1024 {
 diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift b/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
 index 44fabb5b5a..d6b543a527 100644
 --- a/submodules/TelegramCore/Sources/TelegramEngine/Messages/AdMessages.swift
@@ -589,6 +628,19 @@ index 8348bd03aa..b15e8e4834 100644
 +func _internal_searchAdPeers(account _: Account, query _: String) -> Signal<[AdPeer], NoError> {
 +    return .single([])
  }
+diff --git a/submodules/TelegramCore/Sources/TelegramEngine/Resources/CollectCacheUsageStats.swift b/submodules/TelegramCore/Sources/TelegramEngine/Resources/CollectCacheUsageStats.swift
+index de39e91f77..45c402df3b 100644
+--- a/submodules/TelegramCore/Sources/TelegramEngine/Resources/CollectCacheUsageStats.swift
++++ b/submodules/TelegramCore/Sources/TelegramEngine/Resources/CollectCacheUsageStats.swift
+@@ -165,7 +165,7 @@ private func statForDirectory(path: String) -> Int64 {
+         var folderSize: Int64 = 0
+         if let files = try? fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: []) {
+             for file in files {
+-                folderSize += (fileSize(file.path) ?? 0)
++                folderSize += (telegramFileSize(file.path) ?? 0)
+             }
+         }
+         return folderSize
 diff --git a/submodules/TelegramCore/Sources/Utils/PeerUtils.swift b/submodules/TelegramCore/Sources/Utils/PeerUtils.swift
 index e967e561ae..0ab2650bfd 100644
 --- a/submodules/TelegramCore/Sources/Utils/PeerUtils.swift
