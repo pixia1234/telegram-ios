@@ -1,13 +1,14 @@
-# Telegram iOS Lite Builder (Aggressive Trim)
+# Telegram iOS Pure Chat Builder (11.9.0)
 
 This repository builds an unsigned Telegram iOS IPA in GitHub Actions with a patch that:
 
-- disables Telegram Premium and Stars related features in the client
-- disables sponsored ads in chat and ad peer search
-- removes Contacts and Calls tabs from the root tab bar (chat + settings only)
-- disables story upload pipeline by default
-- removes gift / todo / attach-menu app buttons from chat attachment UI
-- pins upstream Telegram iOS source to commit `63a37c5becb646a3c2400e01d91d78faf4799a2e` for reproducible patching
+- pins upstream Telegram iOS to **11.9.0** commit `fa93715135f8d9e16ca098c9e0c35d7e370af6ff`
+- disables Telegram Premium and Stars in client-side configuration
+- disables sponsored ads (chat sponsored messages + ad peer search)
+- removes Calls tab from the root tab bar
+- removes Settings entries for Recent Calls / Premium / Stars / Business / Send Gift
+- removes Settings bot-app list (including Wallet entry)
+- removes attachment menu Gift and App buttons (keeps core chat attachments)
 
 ## What this repo contains
 
@@ -25,5 +26,4 @@ This repository builds an unsigned Telegram iOS IPA in GitHub Actions with a pat
 ## Notes
 
 - Build uses upstream fake codesigning and outputs an unsigned IPA.
-- If upstream source changes significantly, patch apply may fail. Update `patches/0001-lite-trim-heavy-features.patch` accordingly.
-- Story upload and todo editing can be re-enabled via app config keys `lite_enable_stories=true` and `lite_enable_todo=true`.
+- Patch is targeted specifically for commit `fa93715135f8d9e16ca098c9e0c35d7e370af6ff` (11.9.0). If base changes, patch apply may fail.

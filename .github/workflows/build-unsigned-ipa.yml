@@ -15,7 +15,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 720
     env:
-      UPSTREAM_REF: 63a37c5becb646a3c2400e01d91d78faf4799a2e
+      UPSTREAM_REF: fa93715135f8d9e16ca098c9e0c35d7e370af6ff
 
     steps:
       - name: Checkout this repository
