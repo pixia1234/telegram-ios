@@ -1269,7 +1269,7 @@ index e38ac9e876..e4884dab1d 100644
      case standard
      case remove(() -> Void)
 diff --git a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
-index 7f6a694b9b..250fd613e1 100644
+index 7f6a694b9b..8b3af3f13a 100644
 --- a/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
 +++ b/submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift
 @@ -123,32 +123,9 @@ extension ChatControllerImpl {
@@ -1421,8 +1421,8 @@ index 7f6a694b9b..250fd613e1 100644
 -                }
 -                return
 -            }
-+            let (buttons, allButtons, initialButton) = buttonsAndInitialButton
-+            let initialButton = initialButton ?? .gallery
++            let (buttons, allButtons, maybeInitialButton) = buttonsAndInitialButton
++            let initialButton = maybeInitialButton ?? .gallery
              
              let inputText = strongSelf.presentationInterfaceState.interfaceState.effectiveInputState.inputText
              
