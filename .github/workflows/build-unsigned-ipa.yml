@@ -21,10 +21,18 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v4
 
+      - name: Restore Bazel disk cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/bazel-disk-cache
+          key: bazel-disk-cache-${{ runner.os }}-${{ env.UPSTREAM_REF }}-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-cache-${{ runner.os }}-${{ env.UPSTREAM_REF }}-
+
       - name: Clone upstream Telegram iOS
         run: |
           set -euxo pipefail
-          git clone --recursive -j8 --filter=blob:none https://github.com/TelegramMessenger/Telegram-iOS.git "$RUNNER_TEMP/telegram-ios"
+          git clone -j8 --filter=blob:none https://github.com/TelegramMessenger/Telegram-iOS.git "$RUNNER_TEMP/telegram-ios"
           git -C "$RUNNER_TEMP/telegram-ios" checkout "$UPSTREAM_REF"
           git -C "$RUNNER_TEMP/telegram-ios" submodule sync --recursive
           git -C "$RUNNER_TEMP/telegram-ios" submodule update --init --recursive --jobs 8
@@ -75,6 +83,8 @@ jobs:
           APP_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["app"])' "$SOURCE_DIR/versions.json")"
           COMMIT_COUNT="$(git -C "$SOURCE_DIR" rev-list --count HEAD)"
           BUILD_NUMBER="$((COMMIT_COUNT + BUILD_NUMBER_OFFSET))"
+          BAZEL_CACHE_DIR="$RUNNER_TEMP/bazel-disk-cache"
+          mkdir -p "$BAZEL_CACHE_DIR"
 
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
@@ -107,6 +117,7 @@ jobs:
           python3 -u "$SOURCE_DIR/build-system/Make/Make.py" \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
             --overrideXcodeVersion \
+            --cacheDir="$BAZEL_CACHE_DIR" \
             build \
             --configurationPath="$SOURCE_DIR/build-system/appstore-configuration.json" \
             --codesigningInformationPath="$SOURCE_DIR/build-system/fake-codesigning" \
