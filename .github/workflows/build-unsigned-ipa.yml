@@ -132,15 +132,6 @@ jobs:
           text = text.replace("                '--apple_generate_dsym',\n", "")
           text = text.replace("                '--output_groups=+dsyms',\n", "")
           
-          build_marker = "    bazel_command_line.set_enable_sandbox(arguments.sandbox)\n\n    bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)\n"
-          if build_marker not in text:
-              raise SystemExit("Expected build configuration marker not found")
-          text = text.replace(
-              build_marker,
-              "    bazel_command_line.set_enable_sandbox(arguments.sandbox)\n    bazel_command_line.set_disable_provisioning_profiles()\n\n    bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)\n",
-              1,
-          )
-
           config_marker = "    if codesigning_data.aps_environment is None:\n        print('Could not find a valid aps-environment entitlement in the provided provisioning profiles')\n        sys.exit(1)\n\n    if bazel_command_line is not None:\n"
           if config_marker not in text:
               raise SystemExit("Expected configuration marker not found")
