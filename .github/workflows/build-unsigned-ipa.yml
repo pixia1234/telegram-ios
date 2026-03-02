@@ -74,6 +74,9 @@ jobs:
       - name: Build unsigned IPA
         env:
           BAZEL_USER_ROOT: /private/var/tmp/_bazel_containerhost
+          CUSTOM_APP_NAME: Pixiagram
+          CUSTOM_BUNDLE_ID: com.pixiagram.app
+          CUSTOM_URL_SCHEME: pixiagram
         run: |
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
@@ -99,18 +102,59 @@ jobs:
               > "$SOURCE_DIR/build-system/fake-codesigning/profiles/${profile}.mobileprovision"
           done
 
-          # For unsigned CI artifacts, skip dSYM generation to reduce build time.
+          # Rebrand the build and tune upstream scripts for faster unsigned CI output.
           python3 - <<'PY'
           import pathlib
-          path = pathlib.Path("build-system/Make/Make.py")
-          text = path.read_text()
+          
+          app_name = "Pixiagram"
+
+          build_path = pathlib.Path("Telegram/BUILD")
+          build_text = build_path.read_text()
+          marker = "<string>Telegram</string>"
+          if marker not in build_text:
+              raise SystemExit(f"Expected marker not found in Telegram/BUILD: {marker}")
+          build_text = build_text.replace(marker, f"<string>{app_name}</string>")
+          for old, new in [
+              ("<string>telegram</string>", "<string>pixiagram</string>"),
+              ("<string>tg</string>", "<string>pixiagram-compat</string>"),
+              ("<string>tonsite</string>", "<string>pixiagram-site</string>"),
+              ("Telegram stores your contacts heavily encrypted in the cloud", "Pixiagram stores your contacts heavily encrypted in the cloud"),
+              ("When you send your location to your friends, Telegram needs access", "When you send your location to your friends, Pixiagram needs access"),
+          ]:
+              build_text = build_text.replace(old, new)
+          build_path.write_text(build_text)
+
+          make_path = pathlib.Path("build-system/Make/Make.py")
+          text = make_path.read_text()
           for marker in ("'--apple_generate_dsym',", "'--output_groups=+dsyms',"):
               if marker not in text:
                   raise SystemExit(f"Expected marker not found: {marker}")
           text = text.replace("                '--apple_generate_dsym',\n", "")
           text = text.replace("                '--output_groups=+dsyms',\n", "")
-          path.write_text(text)
+          
+          build_marker = "    bazel_command_line.set_enable_sandbox(arguments.sandbox)\n\n    bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)\n"
+          if build_marker not in text:
+              raise SystemExit("Expected build configuration marker not found")
+          text = text.replace(
+              build_marker,
+              "    bazel_command_line.set_enable_sandbox(arguments.sandbox)\n    bazel_command_line.set_disable_provisioning_profiles()\n\n    bazel_command_line.set_split_swiftmodules(arguments.enableParallelSwiftmoduleGeneration)\n",
+              1,
+          )
+
+          config_marker = "    if codesigning_data.aps_environment is None:\n        print('Could not find a valid aps-environment entitlement in the provided provisioning profiles')\n        sys.exit(1)\n\n    if bazel_command_line is not None:\n"
+          if config_marker not in text:
+              raise SystemExit("Expected configuration marker not found")
+          text = text.replace(
+              config_marker,
+              "    if codesigning_data.aps_environment is None:\n        print('Could not find a valid aps-environment entitlement in the provided provisioning profiles')\n        sys.exit(1)\n\n    custom_bundle_id = os.getenv('TELEGRAM_CUSTOM_BUNDLE_ID')\n    if custom_bundle_id:\n        build_configuration.bundle_id = custom_bundle_id\n\n    custom_url_scheme = os.getenv('TELEGRAM_CUSTOM_URL_SCHEME')\n    if custom_url_scheme:\n        build_configuration.app_specific_url_scheme = custom_url_scheme\n\n    if bazel_command_line is not None:\n",
+              1,
+          )
+          make_path.write_text(text)
           PY
+
+          TELEGRAM_CUSTOM_BUNDLE_ID="$CUSTOM_BUNDLE_ID"
+          TELEGRAM_CUSTOM_URL_SCHEME="$CUSTOM_URL_SCHEME"
+          export TELEGRAM_CUSTOM_BUNDLE_ID TELEGRAM_CUSTOM_URL_SCHEME
 
           python3 "$SOURCE_DIR/build-system/Make/ImportCertificates.py" --path "$SOURCE_DIR/build-system/fake-codesigning/certs"
 
@@ -138,11 +182,11 @@ jobs:
             echo "No IPA produced at $ARTIFACTS_DIR/Telegram.ipa" >&2
             exit 1
           fi
-          cp "$ARTIFACTS_DIR/Telegram.ipa" "$OUTPUT_DIR/Telegram-unsigned.ipa"
+          cp "$ARTIFACTS_DIR/Telegram.ipa" "$OUTPUT_DIR/Pixiagram-unsigned.ipa"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Telegram-unsigned-ipa-${{ env.BUILD_NUMBER }}
-          path: ${{ runner.temp }}/artifacts/Telegram-unsigned.ipa
+          name: Pixiagram-unsigned-ipa-${{ env.BUILD_NUMBER }}
+          path: ${{ runner.temp }}/artifacts/Pixiagram-unsigned.ipa
           if-no-files-found: error
