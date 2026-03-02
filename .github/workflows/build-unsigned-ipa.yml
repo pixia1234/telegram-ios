@@ -132,20 +132,8 @@ jobs:
           text = text.replace("                '--apple_generate_dsym',\n", "")
           text = text.replace("                '--output_groups=+dsyms',\n", "")
           
-          config_marker = "    if codesigning_data.aps_environment is None:\n        print('Could not find a valid aps-environment entitlement in the provided provisioning profiles')\n        sys.exit(1)\n\n    if bazel_command_line is not None:\n"
-          if config_marker not in text:
-              raise SystemExit("Expected configuration marker not found")
-          text = text.replace(
-              config_marker,
-              "    if codesigning_data.aps_environment is None:\n        print('Could not find a valid aps-environment entitlement in the provided provisioning profiles')\n        sys.exit(1)\n\n    custom_bundle_id = os.getenv('TELEGRAM_CUSTOM_BUNDLE_ID')\n    if custom_bundle_id:\n        build_configuration.bundle_id = custom_bundle_id\n\n    custom_url_scheme = os.getenv('TELEGRAM_CUSTOM_URL_SCHEME')\n    if custom_url_scheme:\n        build_configuration.app_specific_url_scheme = custom_url_scheme\n\n    if bazel_command_line is not None:\n",
-              1,
-          )
           make_path.write_text(text)
           PY
-
-          TELEGRAM_CUSTOM_BUNDLE_ID="$CUSTOM_BUNDLE_ID"
-          TELEGRAM_CUSTOM_URL_SCHEME="$CUSTOM_URL_SCHEME"
-          export TELEGRAM_CUSTOM_BUNDLE_ID TELEGRAM_CUSTOM_URL_SCHEME
 
           python3 "$SOURCE_DIR/build-system/Make/ImportCertificates.py" --path "$SOURCE_DIR/build-system/fake-codesigning/certs"
 
@@ -162,18 +150,92 @@ jobs:
             --buildNumber="$BUILD_NUMBER"
 
       - name: Collect artifacts
+        env:
+          CUSTOM_APP_NAME: Pixiagram
+          CUSTOM_BUNDLE_ID: com.pixiagram.app
+          CUSTOM_URL_SCHEME: pixiagram
         run: |
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
           OUTPUT_DIR="$RUNNER_TEMP/artifacts"
           ARTIFACTS_DIR="$SOURCE_DIR/build/artifacts"
+          WORK_DIR="$RUNNER_TEMP/pixiagram-ipa-work"
           mkdir -p "$OUTPUT_DIR"
 
           if [[ ! -f "$ARTIFACTS_DIR/Telegram.ipa" ]]; then
             echo "No IPA produced at $ARTIFACTS_DIR/Telegram.ipa" >&2
             exit 1
           fi
-          cp "$ARTIFACTS_DIR/Telegram.ipa" "$OUTPUT_DIR/Pixiagram-unsigned.ipa"
+
+          rm -rf "$WORK_DIR"
+          mkdir -p "$WORK_DIR"
+          ditto -x -k "$ARTIFACTS_DIR/Telegram.ipa" "$WORK_DIR"
+
+          export WORK_DIR
+          python3 - <<'PY'
+          import os
+          import plistlib
+          from pathlib import Path
+          
+          work_dir = Path(os.environ["WORK_DIR"])
+          app_name = os.environ["CUSTOM_APP_NAME"]
+          old_bundle = "ph.telegra.Telegraph"
+          new_bundle = os.environ["CUSTOM_BUNDLE_ID"]
+          new_scheme = os.environ["CUSTOM_URL_SCHEME"]
+          
+          def transform(value):
+              if isinstance(value, str):
+                  return value.replace(old_bundle, new_bundle)
+              if isinstance(value, list):
+                  return [transform(v) for v in value]
+              if isinstance(value, dict):
+                  return {k: transform(v) for k, v in value.items()}
+              return value
+          
+          payload_dir = work_dir / "Payload"
+          app_dirs = list(payload_dir.glob("*.app"))
+          if len(app_dirs) != 1:
+              raise SystemExit(f"Expected exactly one .app in Payload, found: {app_dirs}")
+          
+          app_dir = app_dirs[0]
+          plist_files = [app_dir / "Info.plist"]
+          plist_files.extend(app_dir.glob("PlugIns/*.appex/Info.plist"))
+          plist_files.extend(app_dir.glob("Frameworks/*.framework/Info.plist"))
+          
+          for plist_path in plist_files:
+              if not plist_path.exists():
+                  continue
+              with plist_path.open("rb") as f:
+                  data = plistlib.load(f)
+          
+              data = transform(data)
+          
+              if plist_path == app_dir / "Info.plist":
+                  data["CFBundleDisplayName"] = app_name
+                  data["CFBundleName"] = app_name
+                  url_types = data.get("CFBundleURLTypes")
+                  if isinstance(url_types, list):
+                      for entry in url_types:
+                          if not isinstance(entry, dict):
+                              continue
+                          schemes = entry.get("CFBundleURLSchemes")
+                          if isinstance(schemes, list):
+                              entry["CFBundleURLSchemes"] = [
+                                  new_scheme if s in ("telegram", "tg", "tonsite") else s for s in schemes
+                              ]
+          
+              with plist_path.open("wb") as f:
+                  plistlib.dump(data, f, sort_keys=False)
+          
+          PY
+
+          find "$WORK_DIR/Payload" -type d -name "_CodeSignature" -prune -exec rm -rf {} +
+          find "$WORK_DIR/Payload" -type f -name "embedded.mobileprovision" -delete
+
+          (
+            cd "$WORK_DIR"
+            ditto -c -k --sequesterRsrc --keepParent Payload "$OUTPUT_DIR/Pixiagram-unsigned.ipa"
+          )
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
