@@ -29,5 +29,6 @@ This repository builds an unsigned Telegram iOS IPA in GitHub Actions with a pat
 - Build uses upstream fake codesigning and outputs an unsigned IPA.
 - IPA post-processing defaults:
   - keep locales: `Base,en,zh-Hans` (`IPA_KEEP_LOCALES`)
-  - remove app extensions by keyword: `Watch,Widget,BroadcastUpload,Share` (`IPA_DROP_PLUGINS`)
+  - remove app extensions by keyword: `Watch,Widget,BroadcastUpload,Share,Notification,Intents` (`IPA_DROP_PLUGINS`)
+  - removing `Notification`/`Intents` keywords reduces size further but disables related extension features.
 - Patch is targeted specifically for commit `fa93715135f8d9e16ca098c9e0c35d7e370af6ff` (11.9.0). If base changes, patch apply may fail.

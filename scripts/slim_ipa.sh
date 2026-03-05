@@ -23,7 +23,7 @@ fi
 
 APP_DIR="${app_dirs[0]}"
 KEEP_LOCALES_RAW="${IPA_KEEP_LOCALES:-Base,en,zh-Hans}"
-DROP_PLUGINS_RAW="${IPA_DROP_PLUGINS:-Watch,Widget,BroadcastUpload,Share}"
+DROP_PLUGINS_RAW="${IPA_DROP_PLUGINS:-Watch,Widget,BroadcastUpload,Share,Notification,Intents}"
 
 # Normalize CSV values by dropping spaces around items.
 KEEP_LOCALES_CSV="$(printf '%s' "$KEEP_LOCALES_RAW" | tr -d '[:space:]')"
@@ -34,7 +34,7 @@ if [[ -z "$KEEP_LOCALES_CSV" ]]; then
 fi
 
 if [[ -z "$DROP_PLUGINS_CSV" ]]; then
-  DROP_PLUGINS_CSV="Watch,Widget,BroadcastUpload,Share"
+  DROP_PLUGINS_CSV="Watch,Widget,BroadcastUpload,Share,Notification,Intents"
 fi
 
 payload_size_before_kb="$(du -sk "$PAYLOAD_DIR" | awk '{print $1}')"

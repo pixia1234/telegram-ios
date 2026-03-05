@@ -155,7 +155,7 @@ jobs:
           CUSTOM_BUNDLE_ID: com.pixiagram.app
           CUSTOM_URL_SCHEME: pixiagram
           IPA_KEEP_LOCALES: Base,en,zh-Hans
-          IPA_DROP_PLUGINS: Watch,Widget,BroadcastUpload,Share
+          IPA_DROP_PLUGINS: Watch,Widget,BroadcastUpload,Share,Notification,Intents
         run: |
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
