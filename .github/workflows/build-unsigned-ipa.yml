@@ -154,6 +154,8 @@ jobs:
           CUSTOM_APP_NAME: Pixiagram
           CUSTOM_BUNDLE_ID: com.pixiagram.app
           CUSTOM_URL_SCHEME: pixiagram
+          IPA_KEEP_LOCALES: Base,en,zh-Hans
+          IPA_DROP_PLUGINS: Watch,Widget,BroadcastUpload,Share
         run: |
           set -euxo pipefail
           SOURCE_DIR="$RUNNER_TEMP/telegram-ios"
@@ -229,12 +231,15 @@ jobs:
           
           PY
 
+          "$GITHUB_WORKSPACE/scripts/slim_ipa.sh" "$WORK_DIR"
+
           find "$WORK_DIR/Payload" -type d -name "_CodeSignature" -prune -exec rm -rf {} +
           find "$WORK_DIR/Payload" -type f -name "embedded.mobileprovision" -delete
 
+          rm -f "$OUTPUT_DIR/Pixiagram-unsigned.ipa"
           (
             cd "$WORK_DIR"
-            ditto -c -k --sequesterRsrc --keepParent Payload "$OUTPUT_DIR/Pixiagram-unsigned.ipa"
+            /usr/bin/zip -q -r -y -9 "$OUTPUT_DIR/Pixiagram-unsigned.ipa" Payload
           )
 
       - name: Upload IPA artifact
